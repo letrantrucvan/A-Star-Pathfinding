@@ -1,36 +1,46 @@
-
 # -*- coding: utf-8 -*-
+
 import pygame 
 import os, sys
-from project import *
+#from project import *
+from color import *
 import time
 import random
 from threading import Thread
-width = 1000
-height = 800
-size = 25
-GREEN_LEAF = pygame.Color(128,255,0)
-PINK = pygame.Color(255,128,255)
-RED = pygame.Color(226,55,22)
 
-BLUE = pygame.Color(0, 190, 218, 10)
-BLACK_BLUE = pygame.Color(12,53,71)
-ORANGE = pygame.Color(255,165,0)
-PRUNE = pygame.Color(196,0,0)
-LightGoldenrodYellow  = pygame.Color(250, 250, 210)
-Moccasin = pygame.Color(255, 228, 181)
-SlateBlue1 = pygame.Color(131, 111, 255)
-IndianRed = pygame.Color(205, 92, 92)
-Orchid1 = pygame.Color(255, 131, 250)
-my_color = [GREEN_LEAF, ORANGE, LightGoldenrodYellow, Moccasin, SlateBlue1, IndianRed, BLUE, Orchid1]
-FPS = 240
+
+my_color = [GREEN_LEAF, ORANGE, LightGoldenrodYellow, Moccasin, SlateBlue1, IndianRed, Orchid1, LemonChiffon1, NavajoWhite3, Sienna2]
 clock = pygame.time.Clock()
 os.environ['SDL_VIDEO_CENTERED'] = '1' # Center the screen 
-pygame.init()
-display = pygame.display.set_mode((width,height))
-display.fill((255,255,255))
+size = 25
+
+class Cell():
     
+    def __init__(self, x, y, color, zoom):
+        self.x = x  
+        self.y = y
+        self.color = color
+ 
+        if zoom == True:
+            pygame.draw.circle(display, self.color, (self.x + int(size/2), self.y + int(size/2)), int(size/8), 0)
+            pygame.display.update()
+            Thread(target = self.animation(), args=(self,)).start()
+        else:
+            pygame.draw.rect(display, random.choice(my_color), (x, y, size +1, size +1))    
+            
+    def animation(self):
+        
+        for i in range(6):
+            pygame.draw.circle(display, self.color,(self.x + int(size/2), self.y + int(size/2)), int(size/12 + size*i/12), 0)
+            time.sleep(0.015)
+            pygame.display.flip()
+            
+        pygame.draw.rect(display, self.color, (self.x, self.y, size , size))    
+        pygame.display.update()
+
+        
 def draw_grid():
+
     global width, height, display
 
     for i in range(int(height/size)):
@@ -40,86 +50,118 @@ def draw_grid():
     pygame.display.update()
 
 def update_obstacle(matrix):
+    """
+    Draw all obstacles with black blue color
+    """
+    global width, height, display, size
+    print(matrix)
     for i in range(len(matrix)):
         for j in range(len(matrix[i])):
-            if matrix[i][j] == 1:
+            if matrix[i][j] == 'o':
                 pygame.draw.rect(display, BLACK_BLUE, (j*size, i*size, size+1,size+1))
-                
+               
+    pygame.display.update()
     
 def update_path(path):
-    global size
+    """
+    Draw the solution - the path from A* algorithm
+    """
+    
+    global width, height, display, size
+    
     for x, y in path:
-        Cell(y*size, x*size, ORANGE, False)
-        pygame.display.update()
-        Thread(target = nghich_ngom, args = (y*size, x*size)).start()
-        time.sleep(0.01)
-def nghich_ngom(x, y):
-    global size, display
+        Cell(y*size, x*size, random.choice(my_color), False)
+        pygame.display.update()      
+        time.sleep(0.01)    
+        
     while True:
-        pygame.draw.rect(display, random.choice(my_color), (x, y, size +1, size +1))    
+        for x, y in path:
+            Cell(y*size, x*size, random.choice(my_color), False)
+            pygame.display.flip()
+            #Thread(target = change_color, args = (y*size, x*size)).start()
+            
+
+def change_color(x, y):
+    global width, height, display, size
+    while True:
+        pygame.draw.rect(display, random.choice(my_color), (x, y, size+1, size+1))    
         pygame.display.update()
-        time.sleep(0.02)
+        time.sleep(0.04)
+
 def explored_path(path):
-    global size
+    """
+    Show all the explored cells 
+    """
+    global width, height, display, size
     for x, y in path:
         Cell(y*size, x*size, BLUE, True)
         pygame.display.update()
         
 
 def update_grid(PATH):
+    global width, height, display, size
     path, explored_set = PATH
-    pygame.draw.circle(display, GREEN_LEAF, (int(path[0][1]*size + size/2), int(path[0][0]*size + size/2)), int(size/2), 0)
-    pygame.draw.circle(display, RED, (int(path[-1][1]*size + size/2), int(path[-1][0]*size + size/2)), int(size/2), 0)
-    
 
+    # initial state - green circle
+    pygame.draw.circle(display, GREEN_LEAF, (int(path[0][1]*size + size/2) + 1, int(path[0][0]*size + size/2) + 1), int(size/2), 0)
+
+    # goal state - red circle
+    pygame.draw.circle(display, RED, (int(path[-1][1]*size + size/2) + 1, int(path[-1][0]*size + size/2) + 1), int(size/2), 0)
+    
     pygame.display.update()
+
+    time.sleep(1)
+
     explored_path(explored_set)
+
     update_path(path)
 
     
-class Cell():
-    def __init__(self, x, y, color, zoom):
 
-        self.x = x
-        self.y = y
-        self.color = color
-        self.zoom = zoom
-        if zoom == True:
-            pygame.draw.circle(display, self.color, (self.x + int(size/2), self.y + int(size/2)), int(size/8), 0)
-            pygame.display.update()
-            self.animation()
-        
-    def animation(self):
-        for i in range(4):
-            pygame.draw.circle(display, self.color,(self.x + int(size/2), self.y + int(size/2)), int(size/8 + size*i/8), 0)
-            time.sleep(0.015)
-            pygame.display.update()
-        pygame.draw.rect(display, self.color, (self.x, self.y, size +1, size +1))    
-        pygame.display.update()
-pygame.display.flip()
-draw_grid()
+
+
 def update_display():
-    global display, FPS
-
+    global display, width, height, size
+    FPS = 240
     while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+        try:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    
+                    pygame.quit()
+                    sys.exit()
+        except:
+            pass
         clock.tick(FPS)
         pygame.display.flip()
-if __name__ == "__main__":
-    problem = get_problem("E:\AI\input4.txt")
 
-    Khoa_pr0 = a_star(problem)
+    print("OUT")
+def main(p, s):
+    global width, height, size, display
 
-    update_obstacle(problem.matrix)
-    if Khoa_pr0[0] == -1:
-        explored_path(Khoa_pr0[1])
-    else:   
-        thread = Thread(target=update_grid, args = (Khoa_pr0,))
+    problem = p
+    width = problem.column * size
+    height = problem.row * size
+    solution = s
+
+
+    pygame.init()
+    pygame.display.set_caption("A-Star Visualization")
+    display = pygame.display.set_mode((width,height))
+    display.fill((255,255,255))
+
         
-        thread.start()
-        update_display()
+    draw_grid()
 
-    
+    pygame.display.flip()
+   
+    update_obstacle(problem.matrix)
+    if solution[0] == -1:
+        explored_path(solution[1])        
+    else:   
+
+        thread = Thread(target=update_grid, args = (solution,))
+        thread.start()
+
+        update_display()
+   
